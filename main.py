@@ -1,16 +1,20 @@
 from crewai import Task, Crew, Process
+
 from agents.planner.planner import planner_agent
+from config.prompts import PLANNER_TASK
+
+user_request = """
+I have a cricket match tomorrow.
+Which specialist agents should help me prepare?
+"""
 
 planning_task = Task(
-    description="""
-A coach asks:
-
-'I have a cricket match tomorrow.
-Which specialist agents should help me prepare?'
-
-Explain which agents should be involved and why.
+    description=PLANNER_TASK.format(
+        user_request=user_request
+    ),
+    expected_output="""
+A valid JSON object containing the selected MatchMind AI agents and the reason for each selection.
 """,
-    expected_output="A list of specialist agents with a short reason for each.",
     agent=planner_agent
 )
 
@@ -23,8 +27,8 @@ crew = Crew(
 
 result = crew.kickoff()
 
-print("\n========================")
-print("MATCHMIND AI RESPONSE")
-print("========================\n")
+print("\n==============================")
+print("MATCHMIND AI")
+print("==============================\n")
 
 print(result)

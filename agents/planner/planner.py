@@ -1,19 +1,26 @@
 from crewai import Agent
 from crewai.llm import LLM
 
+from config.settings import (
+    OLLAMA_MODEL,
+    OLLAMA_BASE_URL,
+    VERBOSE,
+)
+
 llm = LLM(
-    model="ollama/llama3.2",
-    base_url="http://localhost:11434"
+    model=OLLAMA_MODEL,
+    base_url=OLLAMA_BASE_URL
 )
 
 planner_agent = Agent(
     role="Planner Agent",
-    goal="Analyze the user's sports request and decide which specialist agents should handle it.",
+    goal="Select the correct MatchMind AI specialist agents for every user request.",
     backstory=(
         "You are the coordinator of MatchMind AI. "
-        "Your responsibility is to understand the user's request and "
-        "identify which agents should be involved."
+        "You never solve sports problems yourself. "
+        "Your responsibility is to analyze the user's request and choose "
+        "the appropriate specialist agents from the predefined list."
     ),
     llm=llm,
-    verbose=True
+    verbose=VERBOSE
 )
