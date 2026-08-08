@@ -25,11 +25,13 @@ class OpponentAgent:
             verbose=True
         )
 
-    def run(self, user_request):
+    def run(self, user_request, match_context):
 
         task = Task(
 
             description=f"""
+            {match_context.to_prompt()}
+
             {user_request}
 
             Analyze the opponent and include:

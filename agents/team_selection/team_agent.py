@@ -5,61 +5,69 @@ from config.settings import llm
 def create_team_selection_agent():
 
     return Agent(
+
         role="Cricket Team Selection Specialist",
 
         goal=(
-            "Select the best possible playing XI "
-            "based on match conditions, player form, "
-            "fitness and team balance."
+            "Analyze the match context and recommend the most suitable "
+            "playing XI for the cricket team."
         ),
 
         backstory=(
-            "You are an experienced cricket selector who "
-            "analyzes player performance, fitness, pitch "
-            "conditions and opposition before selecting "
-            "the final playing XI."
+            "You are an experienced cricket selector who evaluates "
+            "player roles, match conditions, team balance and opposition "
+            "to recommend the best possible playing XI."
         ),
 
         llm=llm,
+
         verbose=True
     )
 
 
-def run_team_selection_agent():
+def run_team_selection_agent(match_context):
 
     agent = create_team_selection_agent()
 
     task = Task(
 
-        description="""
-        Select the best playing XI for tomorrow's cricket match.
+        description=f"""
+        {match_context.to_prompt()}
 
-        Include:
-        - Opening batsmen
-        - Middle order
+        Recommend a suitable playing XI for the team.
+
+        Consider:
+
+        - Match format
+        - Opposition
+        - Venue
+        - Team balance
+        - Batting depth
+        - Bowling combination
         - All-rounders
-        - Wicket keeper
-        - Fast bowlers
-        - Spinners
+        - Tactical requirements
 
-        Explain why each player is selected.
+        Clearly explain why the selected players or player roles
+        are suitable for this match.
         """,
 
         expected_output="""
-        A detailed playing XI with player roles
-        and selection justification.
+        A playing XI recommendation with roles and
+        reasoning for the selection.
         """,
 
         agent=agent
     )
 
     crew = Crew(
+
         agents=[agent],
+
         tasks=[task],
+
         process=Process.sequential,
+
         verbose=True
     )
 
-    result = crew.kickoff()
-
-    return result
+    return crew.kickoff()

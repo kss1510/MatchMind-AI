@@ -1,6 +1,7 @@
 from crewai import Agent, Task, Crew, Process
 from config.settings import llm
 
+
 def create_strategy_agent():
 
     return Agent(
@@ -22,17 +23,19 @@ def create_strategy_agent():
     )
 
 
-def run_strategy_agent():
+def run_strategy_agent(match_context):
 
     agent = create_strategy_agent()
 
     task = Task(
-        description="""
-        A cricket team has a match tomorrow.
 
-        Create a basic match strategy.
+        description=f"""
+        {match_context.to_prompt()}
+
+        Create a match strategy based on this context.
 
         Include:
+
         - Batting approach
         - Bowling approach
         - Key tactical decisions
@@ -46,14 +49,12 @@ def run_strategy_agent():
         agent=agent
     )
 
-
     crew = Crew(
         agents=[agent],
         tasks=[task],
         process=Process.sequential,
         verbose=True
     )
-
 
     result = crew.kickoff()
 

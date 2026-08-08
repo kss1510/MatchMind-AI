@@ -1,4 +1,10 @@
 from crewai.llm import LLM
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+RAPIDAPI_KEY = os.getenv("RAPIDAPI_KEY")
 
 OLLAMA_MODEL = "ollama/llama3.2"
 OLLAMA_BASE_URL = "http://localhost:11434"
