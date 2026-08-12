@@ -6,22 +6,25 @@ def create_fitness_agent():
 
     return Agent(
 
-        role="Cricket Fitness Specialist",
+        role="Cricket Fitness and Availability Analyst",
 
         goal=(
-            "Evaluate fitness considerations relevant to the "
-            "team and identify potential fitness concerns."
+            "Evaluate player fitness, workload and availability "
+            "to identify potential fitness-related concerns "
+            "that could affect team selection and match strategy."
         ),
 
         backstory=(
-            "You are a cricket fitness and workload specialist "
-            "who helps teams assess player fitness, workload "
-            "and preparation requirements before matches."
+            "You are a cricket fitness analyst who evaluates "
+            "player workload, fitness indicators and availability "
+            "to help coaches make informed decisions."
         ),
 
         llm=llm,
 
-        verbose=True
+        verbose=False,
+        max_iter=2,
+        max_retry_limit=0
     )
 
 
@@ -32,28 +35,22 @@ def run_fitness_agent(match_context):
     task = Task(
 
         description=f"""
-        {match_context.to_prompt()}
+{match_context.to_prompt()}
 
-        Provide a fitness and preparation analysis for the team.
+Based ONLY on the scorecard above, give a brief fitness report.
+1. Players with high workload (many overs bowled or long batting innings)
+2. Players who may need rest (low contribution)
+3. Fitness recommendation for the next match
 
-        Include:
-
-        - General fitness considerations
-        - Workload considerations
-        - Match preparation
-        - Recovery considerations
-        - Potential fitness risks
-
-        Do not invent medical conditions or specific player injuries.
-        If player fitness data is unavailable, clearly state that
-        actual fitness status cannot be determined from the
-        available information.
-        """,
+Use only statistics shown. If data missing, say so.
+""",
 
         expected_output="""
-        A cricket fitness and preparation report containing
-        practical recommendations and clearly stated limitations.
-        """,
+A concise fitness report with 3 sections:
+1. High Workload Players
+2. Rest Candidates
+3. Fitness Recommendation
+""",
 
         agent=agent
     )
@@ -66,7 +63,9 @@ def run_fitness_agent(match_context):
 
         process=Process.sequential,
 
-        verbose=True
+        verbose=False,
+        max_iter=2,
+        max_retry_limit=0
     )
 
     return crew.kickoff()

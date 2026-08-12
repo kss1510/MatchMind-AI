@@ -1,34 +1,37 @@
-from crewai import Task, Crew, Process
+import sys
+from core.matchmind_engine import MatchMindEngine
 
-from agents.planner.planner import planner_agent
-from config.prompts import PLANNER_TASK
+def main():
+    print("=" * 70)
+    print("                         MATCHMIND AI")
+    print("              MULTI-AGENT CRICKET ANALYSIS")
+    print("=" * 70)
+    
+    # Check for CLI arguments or ask interactively
+    if len(sys.argv) > 1:
+        match_id_str = sys.argv[1]
+    else:
+        match_id_str = input("\nEnter Cricbuzz Match ID (default: 40381): ").strip()
+        
+    if not match_id_str:
+        match_id_str = "40381"
+        
+    try:
+        match_id = int(match_id_str)
+    except ValueError:
+        print("\n[ERROR] Invalid Match ID. Please enter a valid number.")
+        sys.exit(1)
+        
+    engine = MatchMindEngine()
+    result = engine.process_match(match_id)
+    
+    if result.get("success"):
+        print("\n" + "=" * 70)
+        print("FINAL REPORT PREVIEW")
+        print("=" * 70)
+        print(result.get("final_report", "No report generated."))
+    else:
+        print("\n[ERROR] Engine failed to process the match.")
 
-user_request = """
-I have a cricket match tomorrow.
-Which specialist agents should help me prepare?
-"""
-
-planning_task = Task(
-    description=PLANNER_TASK.format(
-        user_request=user_request
-    ),
-    expected_output="""
-A valid JSON object containing the selected MatchMind AI agents and the reason for each selection.
-""",
-    agent=planner_agent
-)
-
-crew = Crew(
-    agents=[planner_agent],
-    tasks=[planning_task],
-    process=Process.sequential,
-    verbose=True
-)
-
-result = crew.kickoff()
-
-print("\n==============================")
-print("MATCHMIND AI")
-print("==============================\n")
-
-print(result)
+if __name__ == "__main__":
+    main()

@@ -1,181 +1,163 @@
+import time
+import threading
+
 from agents.strategy.strategy_agent import run_strategy_agent
-from agents.opponent.opponent_agent import OpponentAgent
+from agents.opponent.opponent_agent import run_opponent_agent
 from agents.team_selection.team_agent import run_team_selection_agent
 from agents.performance.performance_agent import run_performance_agent
 from agents.fitness.fitness_agent import run_fitness_agent
 from agents.report.report_agent import run_report_agent
 
-from config.match_context import MatchContext
+
+# Per-agent timeout in seconds.
+AGENT_TIMEOUT_SECONDS = 150
+
+
+def _run_with_timeout(fn, args, timeout):
+    """
+    Run fn(*args) in a thread. Return (result, elapsed, timed_out).
+    """
+    result_holder = [None]
+    error_holder = [None]
+
+    def target():
+        try:
+            result_holder[0] = fn(*args)
+        except Exception as e:
+            error_holder[0] = e
+
+    t = threading.Thread(target=target, daemon=True)
+    t0 = time.time()
+    t.start()
+    t.join(timeout=timeout)
+    elapsed = time.time() - t0
+
+    if t.is_alive():
+        return None, elapsed, True   # timed out
+    if error_holder[0]:
+        raise error_holder[0]
+    return result_holder[0], elapsed, False
 
 
 class AgentManager:
     """
     Responsible for executing agents selected by the Planner Agent
-    and combining their outputs into a final report.
+    and generating the final MatchMind AI report.
     """
 
-    def __init__(self, match_context):
-
-        self.match_context = match_context
+    def __init__(self):
 
         self.agent_registry = {
-            "Strategy Agent": self.strategy_agent,
-            "Opponent Analysis Agent": self.opponent_analysis_agent,
-            "Team Selection Agent": self.team_selection_agent,
-            "Performance Agent": self.performance_agent,
-            "Fitness Agent": self.fitness_agent,
+            "Strategy Agent":          (run_strategy_agent,          "Strategy Agent"),
+            "Opponent Analysis Agent": (run_opponent_agent,           "Opponent Analysis Agent"),
+            "Team Selection Agent":    (run_team_selection_agent,     "Team Selection Agent"),
+            "Performance Agent":       (run_performance_agent,        "Performance Agent"),
+            "Fitness Agent":           (run_fitness_agent,            "Fitness Agent"),
         }
 
-    # --------------------------------------------------
-    # Individual Agents
-    # --------------------------------------------------
-
-    def strategy_agent(self):
-        return run_strategy_agent(self.match_context)
-
-    def opponent_analysis_agent(self):
-
-        agent = OpponentAgent()
-
-        return agent.run(
-            """
-            Analyze the upcoming opponent.
-
-            Include:
-
-            - Team strengths
-            - Team weaknesses
-            - Key players
-            - Batting analysis
-            - Bowling analysis
-            - Best strategy against them.
-            """,
-            self.match_context
-        )
-
-    def team_selection_agent(self):
-        return run_team_selection_agent(self.match_context)
-
-    def performance_agent(self):
-        return run_performance_agent(self.match_context)
-
-    def fitness_agent(self):
-        return run_fitness_agent(self.match_context)
-
-    # --------------------------------------------------
-    # Report Generator
-    # --------------------------------------------------
-
-    def report_generator_agent(
-        self,
-        strategy_report,
-        opponent_report,
-        team_report,
-        performance_report,
-        fitness_report
-    ):
-
-        return run_report_agent(
-            strategy_report,
-            opponent_report,
-            team_report,
-            performance_report,
-            fitness_report
-        )
-
-    # --------------------------------------------------
+    # ---------------------------------------------------------
     # Execute Selected Agents
-    # --------------------------------------------------
+    # ---------------------------------------------------------
 
-    def execute_agents(self, selected_agents):
+    def execute_agents(self, selected_agents, match_context):
 
         results = []
 
-        reports = {
-            "strategy_report": None,
-            "opponent_report": None,
-            "team_report": None,
-            "performance_report": None,
-            "fitness_report": None
-        }
+        strategy_report    = ""
+        opponent_report    = ""
+        team_report        = ""
+        performance_report = ""
+        fitness_report     = ""
 
-        # ----------------------------------------------
-        # Run selected agents
-        # ----------------------------------------------
+        for agent in selected_agents:
 
-        for selected_agent in selected_agents:
-
-            agent_name = selected_agent["agent"]
+            agent_name = agent["agent"]
 
             if agent_name not in self.agent_registry:
                 continue
 
-            print(f"\nRunning {agent_name}...")
+            fn, label = self.agent_registry[agent_name]
 
-            result = self.agent_registry[agent_name]()
+            print(f"\n[AGENT] Starting: {label} ...")
+            t_start = time.time()
 
-            if hasattr(result, "raw"):
-                output = result.raw
-            else:
-                output = str(result)
+            try:
+                raw_result, elapsed, timed_out = _run_with_timeout(
+                    fn, (match_context,), AGENT_TIMEOUT_SECONDS
+                )
 
-            # Store reports
+                if timed_out:
+                    result_text = (
+                        f"[TIMEOUT] {label} did not complete within "
+                        f"{AGENT_TIMEOUT_SECONDS}s. "
+                        f"Insufficient data available for this section."
+                    )
+                    print(f"[AGENT] {label} TIMED OUT after {elapsed:.0f}s")
+                else:
+                    result_text = str(raw_result)
+                    print(f"[AGENT] {label} completed in {elapsed:.1f}s")
+
+            except Exception as e:
+                elapsed = time.time() - t_start
+                result_text = (
+                    f"[ERROR] {label} failed after {elapsed:.0f}s: {e}. "
+                    f"Insufficient data available for this section."
+                )
+                print(f"[AGENT] {label} FAILED after {elapsed:.0f}s: {e}")
+
+            # Store per-role
             if agent_name == "Strategy Agent":
-                reports["strategy_report"] = output
-
+                strategy_report = result_text
             elif agent_name == "Opponent Analysis Agent":
-                reports["opponent_report"] = output
-
+                opponent_report = result_text
             elif agent_name == "Team Selection Agent":
-                reports["team_report"] = output
-
+                team_report = result_text
             elif agent_name == "Performance Agent":
-                reports["performance_report"] = output
-
+                performance_report = result_text
             elif agent_name == "Fitness Agent":
-                reports["fitness_report"] = output
+                fitness_report = result_text
 
-            results.append(
-                {
-                    "agent": agent_name,
-                    "result": output
-                }
+            results.append({
+                "agent":  agent_name,
+                "result": result_text
+            })
+
+        # ---------------------------------------------------------
+        # Generate final report regardless of individual failures
+        # ---------------------------------------------------------
+
+        print("\n[AGENT] Starting: Report Generator Agent ...")
+        t_start = time.time()
+
+        try:
+            raw_report, elapsed, timed_out = _run_with_timeout(
+                run_report_agent,
+                (match_context, performance_report, opponent_report,
+                 strategy_report, team_report, fitness_report),
+                AGENT_TIMEOUT_SECONDS
             )
 
-        # ----------------------------------------------
-        # Generate final report
-        # ----------------------------------------------
-
-        required_reports = [
-            reports["strategy_report"],
-            reports["opponent_report"],
-            reports["team_report"],
-            reports["performance_report"],
-            reports["fitness_report"]
-        ]
-
-        if all(required_reports):
-
-            print("\nRunning Report Generator Agent...")
-
-            final_report = self.report_generator_agent(
-                reports["strategy_report"],
-                reports["opponent_report"],
-                reports["team_report"],
-                reports["performance_report"],
-                reports["fitness_report"]
-            )
-
-            if hasattr(final_report, "raw"):
-                final_output = final_report.raw
+            if timed_out:
+                final_report = (
+                    "[TIMEOUT] Report Agent did not complete within "
+                    f"{AGENT_TIMEOUT_SECONDS}s. "
+                    "Specialist agent outputs are available above."
+                )
+                print(f"[AGENT] Report Generator TIMED OUT after {elapsed:.0f}s")
             else:
-                final_output = str(final_report)
+                final_report = str(raw_report)
+                print(f"[AGENT] Report Generator completed in {elapsed:.1f}s")
 
-            results.append(
-                {
-                    "agent": "Report Generator Agent",
-                    "result": final_output
-                }
+        except Exception as e:
+            elapsed = time.time() - t_start
+            final_report = (
+                f"[ERROR] Report Generator failed after {elapsed:.0f}s: {e}"
             )
+            print(f"[AGENT] Report Generator FAILED: {e}")
+
+        results.append({
+            "agent":  "Report Generator Agent",
+            "result": final_report
+        })
 
         return results

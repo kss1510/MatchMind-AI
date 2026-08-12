@@ -2,64 +2,62 @@ from crewai import Agent, Task, Crew, Process
 from config.settings import llm
 
 
-class OpponentAgent:
+def create_opponent_agent():
 
-    def __init__(self):
+    return Agent(
+        role="Cricket Opponent Analyst",
 
-        self.agent = Agent(
-            role="Opponent Analysis Specialist",
+        goal=(
+            "Analyze the opposing cricket team's strengths, "
+            "weaknesses, key players and tactical vulnerabilities."
+        ),
 
-            goal="""
-            Analyze the opponent team and identify their strengths,
-            weaknesses, key players, and possible match-winning strategies.
-            """,
+        backstory=(
+            "You are an experienced cricket opposition analyst. "
+            "You study opponent batting and bowling performances "
+            "to identify threats, weaknesses and tactical opportunities."
+        ),
 
-            backstory="""
-            You are an experienced cricket analyst who studies opponent teams,
-            player statistics, recent performances, and tactical patterns to
-            help teams prepare effectively.
-            """,
+        llm=llm,
+        verbose=False,
+        max_iter=2,
+        max_retry_limit=0
+    )
 
-            llm=llm,
 
-            verbose=True
-        )
+def run_opponent_agent(match_context):
 
-    def run(self, user_request, match_context):
+    agent = create_opponent_agent()
 
-        task = Task(
+    task = Task(
+        description=f"""
+{match_context.to_prompt()}
 
-            description=f"""
-            {match_context.to_prompt()}
+Based ONLY on the scorecard above, give a brief opponent analysis.
+1. Opponent key batsmen (highest scorers with strike rates)
+2. Opponent key bowlers (most wickets, best economy)
+3. Main tactical threat to address
 
-            {user_request}
+Use only statistics shown. If data missing, say so.
+""",
 
-            Analyze the opponent and include:
+        expected_output="""
+A concise opponent analysis with 3 sections:
+1. Key Batsmen
+2. Key Bowlers
+3. Main Tactical Threat
+""",
 
-            - Team strengths
-            - Team weaknesses
-            - Key players
-            - Batting analysis
-            - Bowling analysis
-            - Suggested strategy against this opponent
-            """,
+        agent=agent
+    )
 
-            expected_output="""
-            A detailed opponent analysis report with actionable recommendations.
-            """,
+    crew = Crew(
+        agents=[agent],
+        tasks=[task],
+        process=Process.sequential,
+        verbose=False,
+        max_iter=2,
+        max_retry_limit=0
+    )
 
-            agent=self.agent
-        )
-
-        crew = Crew(
-
-            agents=[self.agent],
-
-            tasks=[task],
-
-            process=Process.sequential,
-
-            verbose=True
-        )
-
-        return crew.kickoff()
+    return crew.kickoff()
