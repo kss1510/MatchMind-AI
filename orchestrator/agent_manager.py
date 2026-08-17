@@ -6,7 +6,7 @@ from agents.opponent.opponent_agent import run_opponent_agent
 from agents.team_selection.team_agent import run_team_selection_agent
 from agents.performance.performance_agent import run_performance_agent
 from agents.fitness.fitness_agent import run_fitness_agent
-from agents.report.report_agent import run_report_agent
+from agents.strategy.report.report_agent import run_report_agent
 
 
 # Per-agent timeout in seconds.

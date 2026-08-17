@@ -54,7 +54,27 @@ def main():
         st.write(f"**Date:** {match_context.match_date}")
         
         with st.expander("View Scorecard Summary"):
-            st.json(match_context.scorecard)
+            innings_list = match_context.scorecard.get("innings", [])
+            if not innings_list:
+                st.write("No scorecard data available.")
+            for i, innings in enumerate(innings_list):
+                total = innings.get("total", {})
+                st.write(
+                    f"**Innings {i + 1}:** "
+                    f"{total.get('runs', '?')}/{total.get('wickets', '?')} "
+                    f"in {total.get('overs', '?')} overs "
+                    f"(RR: {total.get('run_rate', '?')})"
+                )
+
+                batting = [b for b in innings.get("batting", []) if b.get("name")]
+                if batting:
+                    st.write("Batting")
+                    st.dataframe(batting, hide_index=True, width="stretch")
+
+                bowling = [b for b in innings.get("bowling", []) if b.get("name")]
+                if bowling:
+                    st.write("Bowling")
+                    st.dataframe(bowling, hide_index=True, width="stretch")
             
         with st.expander("View Agent Execution Status"):
             selected = [agent["agent"] for agent in result["selected_agents"]]

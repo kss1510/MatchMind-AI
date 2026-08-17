@@ -1,8 +1,25 @@
+from datetime import datetime, timezone
+
+
 class CricbuzzParser:
     """
     Converts raw Cricbuzz API responses into clean,
     structured cricket match information.
     """
+
+    @staticmethod
+    def _format_epoch_ms(value):
+        """
+        Cricbuzz returns dates as epoch milliseconds. Convert to a
+        human-readable date, falling back to the raw value if it
+        isn't a valid epoch timestamp.
+        """
+        try:
+            return datetime.fromtimestamp(
+                int(value) / 1000, tz=timezone.utc
+            ).strftime("%d %b %Y")
+        except (TypeError, ValueError, OSError):
+            return value
 
     @staticmethod
     def parse_scorecard(data):
@@ -114,8 +131,8 @@ class CricbuzzParser:
             "series": data.get("seriesname"),
             "match_description": data.get("matchdesc"),
             "format": data.get("matchformat"),
-            "start_date": data.get("startdate"),
-            "end_date": data.get("enddate"),
+            "start_date": CricbuzzParser._format_epoch_ms(data.get("startdate")),
+            "end_date": CricbuzzParser._format_epoch_ms(data.get("enddate")),
             "status": data.get("status"),
             "short_status": data.get("shortstatus"),
 
