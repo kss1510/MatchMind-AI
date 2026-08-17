@@ -29,7 +29,9 @@ def create_report_agent():
         llm=llm,
 
         verbose=False,
+
         max_iter=2,
+
         max_retry_limit=0
     )
 
@@ -63,6 +65,21 @@ MATCH CONTEXT
 
 {match_context.to_prompt()}
 
+MATCH DATE:
+{match_context.match_date}
+
+TEAM:
+{match_context.team}
+
+OPPONENT:
+{match_context.opponent}
+
+FORMAT:
+{match_context.format}
+
+VENUE:
+{match_context.venue}
+
 
 ============================================================
 IMPORTANT DATA RULE
@@ -71,13 +88,33 @@ IMPORTANT DATA RULE
 The specialist reports below are your PRIMARY SOURCES.
 
 IMPORTANT INSTRUCTIONS:
-- Use only statistics contained in the specialist reports and MATCH CONTEXT.
-- If a statistic is unavailable, explicitly state that it is unavailable.
-- Do not fabricate player statistics, injuries, form, or match events.
-- Clearly distinguish facts (from data) from AI recommendations.
+
+- Use only statistics contained in the specialist reports
+  and MATCH CONTEXT.
+
+- If a statistic is unavailable, explicitly state that it
+  is unavailable.
+
+- Do not fabricate player statistics, injuries, form,
+  match events, workloads or other unsupported facts.
+
+- Clearly distinguish facts from AI recommendations.
+
+- Always use the MATCH DATE provided above when it is
+  available.
+
+- Do not write "Not specified" if the match context
+  contains a valid match date.
+
+- Use the exact team, opponent, format and venue provided
+  in MATCH CONTEXT.
 
 If a specialist report does not contain enough information,
-write: "Insufficient data available." Do NOT make up an answer.
+write:
+
+"Insufficient data available."
+
+Do NOT make up an answer.
 
 
 ============================================================
@@ -119,40 +156,91 @@ SPECIALIST REPORT 5 — FITNESS
 FINAL REPORT REQUIREMENTS
 ============================================================
 
-Synthesize the specialist outputs into ONE concise, structured match report.
+Synthesize the specialist outputs into ONE concise,
+structured match report.
 
 Use EXACTLY this structure:
 
 # MATCHMIND AI — FINAL MATCH REPORT
 
 ## 1. Match Overview
-Include Team, Opponent, Format, Venue, Match date.
+
+Include:
+
+- Team
+- Opponent
+- Format
+- Venue
+- Match date
+
+Use the exact values provided in MATCH CONTEXT.
+
 
 ## 2. Executive Summary & Strategy
-Synthesize key findings from Performance and Strategy reports.
+
+Synthesize the key findings from the Performance
+and Strategy reports.
+
+Focus on meaningful tactical insights.
+
 
 ## 3. Squad & Opponent Insights
-Synthesize key findings from Opponent Analysis and Team Selection reports.
+
+Synthesize key findings from the Opponent Analysis
+and Team Selection reports.
+
+Mention relevant player or squad insights only when
+supported by the provided data.
+
 
 ## 4. Fitness & Workload Assessment
+
 Summarize key findings from the Fitness report.
 
+Do not infer injuries or medical conditions unless
+explicitly provided by the data.
+
+
 ## 5. Key Recommendations & Data Limitations
-Provide 2-3 top recommendations and note any missing data.
+
+Provide 2-3 practical recommendations.
+
+Clearly mention important missing or limited data.
+
+Recommendations must be based on the available
+specialist reports and match context.
+
 
 ============================================================
 FINAL INSTRUCTION
 ============================================================
-Keep responses concise and direct. Do not fabricate statistics.
+
+Keep the response concise and direct.
+
+Do not fabricate statistics.
+
+Do not invent player information.
+
+Do not invent injuries.
+
+Do not invent match events.
+
+Use "Insufficient data available" when required.
+
+Prioritize factual accuracy over speculation.
 """,
 
         expected_output="""
 A structured MatchMind AI final cricket report containing:
+
 1. Match Overview
 2. Executive Summary & Strategy
 3. Squad & Opponent Insights
 4. Fitness & Workload Assessment
 5. Key Recommendations & Data Limitations
+
+The report must use the exact match context provided
+by MatchMind AI and must not fabricate unsupported facts.
 """,
 
         agent=agent
@@ -167,7 +255,9 @@ A structured MatchMind AI final cricket report containing:
         process=Process.sequential,
 
         verbose=False,
+
         max_iter=2,
+
         max_retry_limit=0
     )
 

@@ -21,6 +21,33 @@ class CricbuzzClient:
             "X-RapidAPI-Key": RAPIDAPI_KEY
         }
 
+    def get_matches(self, category="recent"):
+        """
+        Fetch available cricket matches.
+
+        category:
+            - live
+            - recent
+            - upcoming
+        """
+
+        if category not in ["live", "recent", "upcoming"]:
+            raise ValueError(
+                "Invalid category. Use live, recent, or upcoming."
+            )
+
+        url = f"{self.BASE_URL}/matches/v1/{category}"
+
+        response = requests.get(
+            url,
+            headers=self.headers,
+            timeout=15
+        )
+
+        response.raise_for_status()
+
+        return response.json()
+
     def get_scorecard(self, match_id):
         """
         Fetch scorecard information for a cricket match.
