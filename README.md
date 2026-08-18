@@ -76,7 +76,9 @@ Agent Manager / Orchestrator
                 ▼
       Final MatchMind AI Report
 
-Detailed architecture documentation is available in docs/architecture.md.
+```
+
+Detailed architecture documentation is available in [`docs/architecture.md`](docs/architecture.md).
 
 🔄 Analysis Pipeline
 User selects a cricket match from the Streamlit interface.
